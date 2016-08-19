@@ -1,6 +1,6 @@
 # Null String filter plugin for Embulk
 
-TODO: Write short description here and build.gradle file.
+A filter plugin for Embulk to replace NULL string to null.
 
 ## Overview
 
@@ -8,19 +8,25 @@ TODO: Write short description here and build.gradle file.
 
 ## Configuration
 
-- **option1**: description (integer, required)
-- **option2**: description (string, default: `"myvalue"`)
-- **option3**: description (string, default: `null`)
+- **columns**: name of convert columns
+-   **name**: column name (string, required)
+-   **null_string**: value of null_string (string, required)
 
 ## Example
 
 ```yaml
-filters:
-  - type: null_string
-    option1: example1
-    option2: example2
+- type: null_string
+  columns:
+  - name: comment
+    null_string: ""
 ```
 
+```yaml
+- type: null_string
+  columns:
+  - name: comment
+    null_string: "\\N"
+```
 
 ## Build
 

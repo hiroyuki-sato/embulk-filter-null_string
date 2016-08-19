@@ -3,6 +3,7 @@ plugins {
     id "com.github.jruby-gradle.base" version "0.1.5"
     id "java"
     id "checkstyle"
+    id "findBugs"
 }
 import com.github.jrubygradle.JRubyExec
 repositories {
@@ -23,6 +24,10 @@ dependencies {
     provided "org.embulk:embulk-core:0.8.13"
     // compile "YOUR_JAR_DEPENDENCY_GROUP:YOUR_JAR_DEPENDENCY_MODULE:YOUR_JAR_DEPENDENCY_VERSION"
     testCompile "junit:junit:4.+"
+
+    testCompile "org.embulk:embulk-core:0.8.13:tests"
+    testCompile "org.embulk:embulk-standards:0.8.13"
+
 }
 
 task classpath(type: Copy, dependsOn: ["jar"]) {
@@ -78,7 +83,7 @@ Gem::Specification.new do |spec|
   spec.description   = %[Null String]
   spec.email         = ["hiroysato@gmail.com"]
   spec.licenses      = ["MIT"]
-  # TODO set this: spec.homepage      = "https://github.com/hiroyuki-sato/embulk-filter-null_string"
+  spec.homepage      = "https://github.com/hiroyuki-sato/embulk-filter-null_string"
 
   spec.files         = `git ls-files`.split("\n") + Dir["classpath/*.jar"]
   spec.test_files    = spec.files.grep(%r"^(test|spec)/")
