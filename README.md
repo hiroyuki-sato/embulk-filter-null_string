@@ -1,6 +1,6 @@
 # Null String filter plugin for Embulk
 
-A filter plugin for Embulk to replace NULL string to null.
+An Embulk filter plugin to convert the matching string to NULL.
 
 ## Overview
 

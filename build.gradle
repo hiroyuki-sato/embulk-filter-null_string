@@ -80,7 +80,7 @@ Gem::Specification.new do |spec|
   spec.version       = "${project.version}"
   spec.authors       = ["Hiroyuki Sato"]
   spec.summary       = %[Null String filter plugin for Embulk]
-  spec.description   = %[Null String]
+  spec.description   = %[An Embulk filter plugin to convert the matching string to NULL.]
   spec.email         = ["hiroysato@gmail.com"]
   spec.licenses      = ["MIT"]
   spec.homepage      = "https://github.com/hiroyuki-sato/embulk-filter-null_string"
