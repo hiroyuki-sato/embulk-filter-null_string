@@ -1,8 +1,8 @@
 package org.embulk.filter.null_string;
 
-import org.embulk.config.Config;
+import org.embulk.util.config.Config;
 import org.embulk.config.ConfigSource;
-import org.embulk.config.Task;
+import org.embulk.util.config.Task;
 import org.embulk.config.TaskSource;
 import org.embulk.spi.Column;
 import org.embulk.spi.Exec;
