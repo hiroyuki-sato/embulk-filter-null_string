@@ -1,41 +1,149 @@
 plugins {
-    id "com.jfrog.bintray" version "1.1"
-    id "com.github.jruby-gradle.base" version "0.1.5"
     id "java"
+    id "maven-publish"
+    id "signing"
     id "checkstyle"
-    id "findbugs"
+
+    // Apply this Gradle plugin.
+    id "org.embulk.embulk-plugins" version "0.6.1"
+
 }
-import com.github.jrubygradle.JRubyExec
 repositories {
     mavenCentral()
-    jcenter()
 }
 configurations {
     provided
 }
 
-version = "0.1.0"
+group = "io.github.hiroyuki-sato"
+version = "0.2.0"
+description = "An Embulk filter plugin to convert the matching string to NULL."
 
-sourceCompatibility = 1.7
-targetCompatibility = 1.7
+configurations {
+    // We'd recommend to enable dependency locking so that you are aware of transitive dependencies.
+    // See: https://docs.gradle.org/current/userguide/dependency_locking.html
+    compileClasspath.resolutionStrategy.activateDependencyLocking()
+    runtimeClasspath.resolutionStrategy.activateDependencyLocking()
+}
+
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(8)
+    }
+
+    // "javadoc" JAR and "sources" JAR are required to publish the plugin to Maven Central.
+    withJavadocJar()
+    withSourcesJar()
+}
 
 dependencies {
-    compile  "org.embulk:embulk-core:0.8.13"
-    provided "org.embulk:embulk-core:0.8.13"
-    // compile "YOUR_JAR_DEPENDENCY_GROUP:YOUR_JAR_DEPENDENCY_MODULE:YOUR_JAR_DEPENDENCY_VERSION"
-    testCompile "junit:junit:4.+"
+    compileOnly "org.embulk:embulk-spi:0.11"
+    implementation "org.embulk:embulk-util-config:0.4.0"
 
-    testCompile "org.embulk:embulk-core:0.8.13:tests"
-    testCompile "org.embulk:embulk-standards:0.8.13"
-
+    testImplementation "junit:junit:4.13.2"
+    testImplementation "org.embulk:embulk-junit4:0.11"
+    testImplementation "org.embulk:embulk-spi:0.11"
+    testImplementation "org.embulk:embulk-core:0.11.0"
+    testImplementation "org.embulk:embulk-deps:0.11.0"
+    testImplementation "org.embulk:embulk-junit4:0.11.0"
 }
 
-task classpath(type: Copy, dependsOn: ["jar"]) {
-    doFirst { file("classpath").deleteDir() }
-    from (configurations.runtime - configurations.provided + files(jar.archivePath))
-    into "classpath"
+embulkPlugin {
+    // Set the plugin's main class.
+    mainClass = "org.embulk.parser.null_string.NullStringFilterPlugin"
+
+    // Set: "decoder", "encoder", "filter", "formatter", "guess", "input", "output", or "parser"
+    category = "filter"
+
+    // Set the "type" of the Embulk plugin used in Embulk's configuration YAML.
+    // For instance, it would be "example" for "embulk-input-example".
+    type = "null_string"
 }
-clean { delete "classpath" }
+
+// It would be a good habit to contain the LICENSE file(s) at "META-INF/" in your plugin packages.
+jar {
+    metaInf {
+        from rootProject.file("LICENSE.txt")
+    }
+}
+sourcesJar {
+    metaInf {
+        from rootProject.file("LICENSE.txt")
+    }
+}
+javadocJar {
+    metaInf {
+        from rootProject.file("LICENSE.txt")
+    }
+}
+
+
+// The publishing settings are usually required to publish the plugin to Maven Central.
+// Publish it by: "./gradlew publishMavenPublicationToMavenRepository"
+publishing {
+    publications {
+        maven(MavenPublication) {
+            groupId = project.group
+            artifactId = project.name
+
+            from components.java
+            // javadocJar and sourcesJar are added by java.withJavadocJar() and java.withSourcesJar() above.
+            // See: https://docs.gradle.org/current/javadoc/org/gradle/api/plugins/JavaPluginExtension.html
+
+            // Some pom.xml attributes are mandatory in Maven Central.
+            // See: https://central.sonatype.org/pages/requirements.html
+            pom {
+                packaging "jar"
+
+                name = project.name
+                description = project.description
+                url = "https://.../"
+
+                licenses {
+                    license {
+                        // See: http://central.sonatype.org/pages/requirements.html#license-information
+                        name = "..."
+                        url = "..."
+                        distribution = "repo"
+                    }
+                }
+
+                developers {
+                    developer {
+                        name = "..."
+                        email = "..."
+                    }
+                    developer {
+                        name = "..."
+                        email = "..."
+                    }
+                    // ...
+                }
+
+                scm {
+                    connection = "scm:git:git://github.com/hiroyuki-sato/embulk-filter-null_string.git"
+                    developerConnection = "scm:git:git@github.com:hiroyuki-sato/embulk-filter-null_string.git"
+                    url = "https://github.com/hiroyuki-sato/embulk-filter-null_string"
+                }
+            }
+        }
+    }
+    repositories {
+        maven {  // publishMavenPublicationToMavenCentralRepository
+            name = "mavenCentral"
+            if (project.version.endsWith("-SNAPSHOT")) {
+                url "https://s01.oss.sonatype.org/content/repositories/snapshots"
+            } else {
+                url "https://s01.oss.sonatype.org/service/local/staging/deploy/maven2"
+            }
+
+            credentials {
+                username = project.hasProperty("ossrhUsername") ? ossrhUsername : ""
+                password = project.hasProperty("ossrhPassword") ? ossrhPassword : ""
+            }
+        }
+    }
+}
 
 checkstyle {
     configFile = file("${project.rootDir}/config/checkstyle/checkstyle.xml")
@@ -54,46 +162,41 @@ task checkstyle(type: Checkstyle) {
     source = sourceSets.main.allJava + sourceSets.test.allJava
 }
 
-task gem(type: JRubyExec, dependsOn: ["gemspec", "classpath"]) {
-    jrubyArgs "-rrubygems/gem_runner", "-eGem::GemRunner.new.run(ARGV)", "build"
-    script "${project.name}.gemspec"
-    doLast { ant.move(file: "${project.name}-${project.version}.gem", todir: "pkg") }
-}
 
-task gemPush(type: JRubyExec, dependsOn: ["gem"]) {
-    jrubyArgs "-rrubygems/gem_runner", "-eGem::GemRunner.new.run(ARGV)", "push"
-    script "pkg/${project.name}-${project.version}.gem"
-}
-
-task "package"(dependsOn: ["gemspec", "classpath"]) << {
-    println "> Build succeeded."
-    println "> You can run embulk with '-L ${file(".").absolutePath}' argument."
-}
-
-task gemspec {
-    ext.gemspecFile = file("${project.name}.gemspec")
-    inputs.file "build.gradle"
-    outputs.file gemspecFile
-    doLast { gemspecFile.write($/
-Gem::Specification.new do |spec|
-  spec.name          = "${project.name}"
-  spec.version       = "${project.version}"
-  spec.authors       = ["Hiroyuki Sato"]
-  spec.summary       = %[Null String filter plugin for Embulk]
-  spec.description   = %[An Embulk filter plugin to convert the matching string to NULL.]
-  spec.email         = ["hiroysato@gmail.com"]
-  spec.licenses      = ["MIT"]
-  spec.homepage      = "https://github.com/hiroyuki-sato/embulk-filter-null_string"
-
-  spec.files         = `git ls-files`.split("\n") + Dir["classpath/*.jar"]
-  spec.test_files    = spec.files.grep(%r"^(test|spec)/")
-  spec.require_paths = ["lib"]
-
-  #spec.add_dependency 'YOUR_GEM_DEPENDENCY', ['~> YOUR_GEM_DEPENDENCY_VERSION']
-  spec.add_development_dependency 'bundler', ['~> 1.0']
-  spec.add_development_dependency 'rake', ['>= 10.0']
-end
-/$)
+signing {
+    // Just an optional technique to specify a GPG key and password from Gradle properties.
+    //
+    // Set your GPG key into "signingKey" in the ASCII armor format.
+    // Set your GPG key password into "signingPassword".
+    //
+    // It is sometimes useful to publish the plugin to Maven Central from CI like GitHub Actions.
+    if (project.hasProperty("signingKey") && project.hasProperty("signingPassword")) {
+        logger.lifecycle("Signing with an in-memory key.")
+        useInMemoryPgpKeys(signingKey, signingPassword)
     }
+
+    sign publishing.publications.maven
 }
-clean { delete "${project.name}.gemspec" }
+
+gem {
+    authors = [ "Hiroyuki Sato","Takuma kanari" ]
+    email = [ "hiroysato@gmail.com"]
+    // "description" of the gem is copied from "description" of your Gradle project.
+    summary = "Null String filter plugin for Embulk"
+    homepage = "https://github.com/hiroyuki-sato/embulk-filter-null_string"
+    licenses = [ "MIT" ]
+
+    generateRubyCode = false  // Avoiding generate lib/embulk/parser/jsonpath.rb
+    into("lib/embulk/filter/") {
+      from "lib/embulk/filter/null_string.rb"
+    }
+    into("lib/embulk/guess/") {
+      from "lib/embulk/filter/null_string.rb"
+    }
+    dependencies = []
+}
+
+gemPush {
+    host = "https://rubygems.org"
+    //jruby = "org.jruby:jruby-complete:9.2.21.0"
+}
