@@ -1,18 +1,21 @@
 package org.embulk.filter.null_string;
 
-import org.embulk.EmbulkTestRuntime;
 import org.embulk.config.ConfigLoader;
 import org.embulk.config.ConfigSource;
 import org.embulk.filter.null_string.NullStringFilterPlugin.PluginTask;
 import org.embulk.spi.Exec;
+import org.embulk.spi.ExecInternal;
 import org.embulk.spi.Page;
 import org.embulk.spi.PageBuilder;
 import org.embulk.spi.PageReader;
-import org.embulk.spi.PageTestUtils;
 import org.embulk.spi.Schema;
-import org.embulk.spi.TestPageBuilderReader;
 import org.embulk.spi.time.Timestamp;
 import org.embulk.spi.util.Pages;
+import org.embulk.test.EmbulkTestRuntime;
+import org.embulk.test.PageTestUtils;
+import org.embulk.test.TestPageBuilderReader;
+import org.embulk.util.config.ConfigMapper;
+import org.embulk.util.config.ConfigMapperFactory;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -33,6 +36,10 @@ public class TestNullStringVisitorImpl
     @Rule
     public EmbulkTestRuntime runtime = new EmbulkTestRuntime();
 
+    private static final ConfigMapperFactory CONFIG_MAPPER_FACTORY =
+            ConfigMapperFactory.builder().addDefaultModules().build();
+    private static final ConfigMapper CONFIG_MAPPER = CONFIG_MAPPER_FACTORY.createConfigMapper();
+
     @Before
     public void createResource()
     {
@@ -51,9 +58,9 @@ public class TestNullStringVisitorImpl
         }
         String yamlString = builder.toString();
 
-        ConfigLoader loader = new ConfigLoader(Exec.getModelManager());
+        ConfigLoader loader = new ConfigLoader(ExecInternal.getModelManager());
         ConfigSource config = loader.fromYamlString(yamlString);
-        return config.loadConfig(PluginTask.class);
+        return CONFIG_MAPPER.map(config, PluginTask.class);
     }
 
     private List<Object[]> filter(PluginTask task, Schema inputSchema, Object... objects)
